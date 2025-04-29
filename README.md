@@ -1,107 +1,102 @@
 # Point Cloud Processing Tool
 
-This Python project provides tools for processing and analyzing time-series 3D point cloud data, with a focus on computing transformations between consecutive frames using the Kabsch algorithm.
+A lightweight Python toolkit for analysing **time‑series 3‑D point‑clouds** exported by motion‑capture systems (Qualisys, Motive, etc.).  It provides high‑level helpers for loading CSV files, selecting frames, and computing frame‑to‑frame rigid registration – now with **robust outlier rejection** and an option to **ignore or keep three reference‑frame markers** that are sometimes present in dental / cranio‑facial studies.
 
-## Features
+---
 
-- Load and process time-series point cloud data from CSV files
-- Compute rigid transformations (rotation and translation) between point clouds
-- Handle missing or invalid points automatically
-- Visualize point clouds and transformations in 3D
-- Calculate alignment error metrics (RMSE)
+## ✨  Key Features
 
+| Category | Capability |
+| -------- | ---------- |
+| Loading  | One‑line import from vendor CSV; auto‑reshapes to `(frames × points × 3)` |
+| Selection | `get_point_cloud_at_time(idx, support=False)` – fetch any frame, with or without the first three support markers |
 
+|          | `get_best_point_cloud(support=False)` – pick the frame that has the most complete XYZ triplets (ties broken at random) |
+| Registration | `compute_transformation(src, tgt, support=False, robust=False)` – Kabsch alignment with optional **RANSAC** outlier rejection |
+| Metrics   | RMSE and full inlier mask returned by the alignment routine |
+| Visuals   | Helper routines for 3‑D scatter / overlay plots (see `visualise.py`) |
 
-![Point Cloud Processing Example](images/point_cloud_comparison.png)
+---
 
+## 📦  Requirements
 
-![Point Cloud Processing Example](images/point_cloud_comparison.png)
-## Requirements
+* Python ≥ 3.9
+* NumPy
+* Pandas
+* Matplotlib
 
-The project requires Python 3.9+ and the following dependencies:
-- NumPy
-- Pandas
-- Matplotlib
-
-You can install the dependencies using either:
+Install with pip:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-or using conda:
+or via Conda:
 
 ```bash
 conda env create -f environment.yml
 ```
 
-## Usage
-
-### Basic Usage
+---
+## 🚀  Quick Start
 
 ```python
 from point_cloud_processor import PointCloudProcessor
 
-# Initialize the processor with a CSV file
-processor = PointCloudProcessor('path/to/your/pointcloud.csv')
+# 1. Load the CSV
+pcp = PointCloudProcessor("data/subject01.csv")
 
-# Get point clouds at specific time points
-cloud1 = processor.get_point_cloud_at_time(0)  # First frame
-cloud2 = processor.get_point_cloud_at_time(1)  # Second frame
+# 2. Grab two frames **without** the three dental‑support markers
+cloud_a = pcp.get_point_cloud_at_time(0, support=False)
+cloud_b = pcp.get_point_cloud_at_time(42, support=False)
 
-# Compute transformation between two frames
-rotation, translation, error = processor.compute_transformation(0, 1)
+# 3. Robust alignment (RANSAC) on the 65 anatomical points
+R, t, rmse, inliers = pcp.compute_transformation(0, 42, support=False, robust=True)
+print(f"RMSE = {rmse:.2f} mm  –  {inliers.sum()} inliers")
+
+# 4. Need the densest frame? – Easy:
+best_cloud, best_idx = pcp.get_best_point_cloud()
+print(f"Frame {best_idx} has the most complete data → {best_cloud.shape[0]} points")
 ```
 
 ### Data Format
 
-The input CSV files should follow this structure:
-1. First row: "Trajectories"
-2. Second row: Number of frames
-3. Third row: Point names/labels
-4. Fourth row: Coordinate headers (X, Y, Z for each point)
-5. Fifth row: Units (mm)
-6. Subsequent rows: Frame data with X, Y, Z coordinates for each point
+The loader expects the standard Qualisys CSV layout:
 
-### Visualization
+1. **Row 1**  `Trajectories`
+2. **Row 2**  number of frames
+3. **Row 3**  marker names
+4. **Row 4**  coordinate headers (`..., X, Y, Z, ...`)
+5. **Row 5**  units (`mm`)
+6. **Rows 6+**  numeric data
 
-The project includes visualization tools to display:
-- Original point clouds
-- Transformed point clouds
-- Overlay of source and target clouds for comparison
+> **Marker count**: the file may contain **68 markers** – the first three (`0‑2`) are an *optional* rigid dental support.  Most analyses set `support=False` so that all methods operate on the **65 anatomical markers** only.
 
-## Example
+---
+## 🔧  Implementation Notes
 
-Check out `demo.py` for a complete example showing how to:
-- Load point cloud data
-- Compute transformations
-- Visualize results
+* **Transformation** – classic Kabsch (centroid alignment + SVD) plus an optional RANSAC wrapper (configurable threshold / iterations).
+* **Outlier Mask** – when `robust=True`, the boolean mask returned lets you visualise or further process the inliers.
+* **API Stability** – all new flags default to the previous behaviour, so existing scripts run unchanged.
 
-```python
+---
+
+## 🖼️  Examples & Visualisation
+
+![Registered point clouds](images/point_cloud_comparison.png)
+
+See `demo.py` for a self‑contained walkthrough that loads a CSV, aligns two frames, and plots the result.
+
+```bash
 python demo.py
 ```
 
-## Implementation Details
+---
+## 🤝  Contributing
 
-### Point Cloud Processing
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/my-awesome`)  
+3. Commit your changes (+ tests!)
+4. Open a pull request
 
-The `PointCloudProcessor` class handles:
-- Data loading and preprocessing
-- Point cloud manipulation
-- Transformation computation using the Kabsch algorithm
-
-### Transformation Computation
-
-The transformation between point clouds is computed using:
-1. Centroid alignment
-2. SVD-based rotation computation
-3. Translation determination
-4. RMSE error calculation
-
-### Visualization
-
-The visualization module provides:
-- 3D scatter plots of point clouds
-- Multiple view angles
-- Color-coded point sets
-- Transparency options for overlaid visualizations
+---
