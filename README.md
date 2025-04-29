@@ -10,7 +10,6 @@ A lightweight Python toolkit for analysing **time‑series 3‑D point‑clouds*
 | -------- | ---------- |
 | Loading  | One‑line import from vendor CSV; auto‑reshapes to `(frames × points × 3)` |
 | Selection | `get_point_cloud_at_time(idx, support=False)` – fetch any frame, with or without the first three support markers |
-
 |          | `get_best_point_cloud(support=False)` – pick the frame that has the most complete XYZ triplets (ties broken at random) |
 | Registration | `compute_transformation(src, tgt, support=False, robust=False)` – Kabsch alignment with optional **RANSAC** outlier rejection |
 | Metrics   | RMSE and full inlier mask returned by the alignment routine |
